@@ -1,5 +1,13 @@
-# Blueprint Render: Dashboard → New → Blueprint → collega questo repo.
-# Poi imposta a mano le variabili "sync: false" (DATABASE_URL, REDIS_URL, FRONTEND_URL, email).
+# Blueprint: Render crea Postgres + Web Service e collega DATABASE_URL da solo.
+# Dashboard → New → Blueprint → repo barberOS (branch main).
+# Se hai già solo il Web Service: New → PostgreSQL (free), poi nel servizio web
+# collega "DATABASE_URL" dalla scheda Connect del database, oppure rifai deploy da Blueprint.
+databases:
+  - name: barberos-db
+    databaseName: barberos
+    plan: free
+    region: frankfurt
+
 services:
   - type: web
     name: barberos-api
@@ -14,7 +22,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: barberos-db
+          property: connectionString
       - key: REDIS_URL
         sync: false
       - key: JWT_SECRET

@@ -1,8 +1,31 @@
 # Deploy gratuito (Vercel + Render + Neon + Upstash)
 
-Non possiamo creare account al posto tuo: segui l’ordine qui sotto.
+Non possiamo accedere al tuo account Render/Neon: i passi li fai tu nel browser.
 
-## 1. PostgreSQL (Neon, gratis)
+## 0. Database senza copiare URL (Blueprint Render) — “lo fa Render”
+
+Il file **`render.yaml`** in repo definisce:
+
+- **Postgres free** (`barberos-db`)
+- **Web Service** (`barberos-api`) con **`DATABASE_URL` collegata automaticamente** al database (niente localhost).
+
+Passi:
+
+1. [render.com](https://render.com) → **New** → **Blueprint**.
+2. Collega il repo **barberOS** e conferma (branch `main`).
+3. Render crea DB + API. **Non** impostare `DATABASE_URL` a mano (e cancella valori con `localhost` se restano da un deploy vecchio).
+4. Compila nel servizio web solo ciò che manca: **`FRONTEND_URL`**, eventuale **`REDIS_URL`** (Upstash), SMTP.
+5. Dopo il primo deploy ok, applica lo schema **una tantum** (Shell Render sul servizio web, nella root `backend`):
+
+   ```bash
+   npm run migrate
+   ```
+
+   (Oppure dal PC con la *Internal Database URL* copiata dalla scheda del database su Render.)
+
+Se preferisci **Neon** invece del Postgres Render, non usare questo blueprint per il DB oppure sovrascrivi `DATABASE_URL` nel dashboard con la stringa Neon.
+
+## 1. PostgreSQL (Neon, gratis) — solo se non usi il DB del blueprint
 
 1. Crea un progetto su [neon.tech](https://neon.tech) e un database.
 2. Copia la connection string (`DATABASE_URL`).
@@ -25,17 +48,15 @@ npm run migrate
 npm run seed    # opzionale: utenti demo (README credenziali)
 ```
 
-## 4. API su Render (gratis)
+## 4. API su Render (solo Web Service manuale, senza Blueprint)
 
-1. [render.com](https://render.com) → **New** → **Blueprint** (oppure **Web Service**).
-2. Collega il repo; se usi Blueprint, punta a `render.yaml`.
-3. **Root Directory**: `backend` (se non usi il blueprint che lo imposta già).
-4. In **Environment**, imposta almeno:
-   - `DATABASE_URL`, `REDIS_URL`
-   - `FRONTEND_URL` = `https://barber-os-ten.vercel.app` (o il tuo dominio Vercel)
-   - `JWT_SECRET` e `JWT_REFRESH_SECRET` (stringhe lunghe casuali; il blueprint può generarne due)
-   - SMTP: se non invii email, metti placeholder coerenti o configura Gmail/App Password
-5. Deploy. Copia l’URL pubblico del servizio, es. `https://barberos-api.onrender.com`.
+Se **non** usi il Blueprint del punto 0:
+
+1. **New** → **Web Service** → repo barberOS, **Root Directory** `backend`.
+2. Build `npm run build`, Start `npm start`.
+3. Crea un **PostgreSQL** su Render (o Neon) e metti la **`DATABASE_URL`** reale in Environment (mai localhost).
+4. `FRONTEND_URL`, `JWT_*`, SMTP, eventuale `REDIS_URL`.
+5. Deploy e `npm run migrate` una tantum.
 
 ## 5. Frontend (Vercel)
 
