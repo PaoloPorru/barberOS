@@ -1,11 +1,8 @@
 /**
- * Proxy /api/* → backend (runtime Node: legge anche variabili "Sensitive" su Vercel).
- * Edge Middleware NON legge le env Sensitive → usare questa funzione.
+ * Proxy /api/* → backend (Node su Vercel).
+ * Nome file: [...path] (catch-all Vercel). NON usare [[...slug]] (è Next.js e qui spesso non viene eseguito → 405 sul POST /api).
  *
- * Vercel → Environment Variables (Production):
- *   API_ORIGIN = https://tuo-api.onrender.com   (senza / finale)
- *
- * Alternativa senza proxy: VITE_API_BASE_URL nel build del frontend.
+ * Vercel → API_ORIGIN = https://tuo-api.onrender.com (senza / finale)
  */
 module.exports = async (req, res) => {
   const origin = String(process.env.API_ORIGIN || process.env.BACKEND_URL || '')
@@ -16,7 +13,7 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       error: 'API_ORIGIN mancante',
       hint:
-        'Vercel → Settings → Environment Variables: aggiungi API_ORIGIN (URL del backend senza / finale). Salva e fai Redeploy. In alternativa imposta VITE_API_BASE_URL=https://…/api sul build del frontend e ridistribuisci.',
+        'Vercel → Environment Variables: API_ORIGIN. Oppure VITE_API_BASE_URL=https://…/api nel build del frontend.',
     });
   }
 
@@ -33,9 +30,9 @@ module.exports = async (req, res) => {
   }
 
   if (!pathname.startsWith('/api')) {
-    const slug = req.query?.slug;
+    const seg = req.query?.path ?? req.query?.slug;
     const segments =
-      slug === undefined ? [] : Array.isArray(slug) ? slug : [slug];
+      seg === undefined ? [] : Array.isArray(seg) ? seg : [seg];
     pathname = segments.length ? `/api/${segments.join('/')}` : '/api';
   }
 

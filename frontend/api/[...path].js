@@ -1,6 +1,6 @@
 /**
- * Proxy /api/* (copia per Vercel con Root Directory = `frontend`).
- * Mantieni allineato a `api/[[...slug]].js` in root repo.
+ * Proxy /api/* — copia per Vercel Root Directory = `frontend`.
+ * Allineare a `api/[...path].js` in root repo.
  */
 module.exports = async (req, res) => {
   const origin = String(process.env.API_ORIGIN || process.env.BACKEND_URL || '')
@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       error: 'API_ORIGIN mancante',
       hint:
-        'Vercel → Environment Variables: API_ORIGIN = URL backend senza / finale. Redeploy. Oppure VITE_API_BASE_URL=https://…/api sul build.',
+        'Vercel → Environment Variables: API_ORIGIN. Oppure VITE_API_BASE_URL=https://…/api nel build.',
     });
   }
 
@@ -28,9 +28,9 @@ module.exports = async (req, res) => {
   }
 
   if (!pathname.startsWith('/api')) {
-    const slug = req.query?.slug;
+    const seg = req.query?.path ?? req.query?.slug;
     const segments =
-      slug === undefined ? [] : Array.isArray(slug) ? slug : [slug];
+      seg === undefined ? [] : Array.isArray(seg) ? seg : [seg];
     pathname = segments.length ? `/api/${segments.join('/')}` : '/api';
   }
 
