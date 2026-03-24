@@ -79,6 +79,12 @@ const PORT = process.env.PORT || 3000;
 
 async function start() {
   try {
+    if (!process.env.DATABASE_URL || !String(process.env.DATABASE_URL).trim()) {
+      logger.error(
+        'Manca DATABASE_URL. Su Render → Environment aggiungi la connection string PostgreSQL (Neon/Supabase/Render PG).'
+      );
+      process.exit(1);
+    }
     await sequelize.authenticate();
     logger.info('✅ Database connected');
 
@@ -87,6 +93,11 @@ async function start() {
     });
   } catch (err) {
     logger.error('❌ Unable to start:', err);
+    if (err.name === 'SequelizeConnectionRefusedError' || err.parent?.code === 'ECONNREFUSED') {
+      logger.error(
+        'Database rifiutata la connessione: controlla DATABASE_URL su Render (stringa Neon/Supabase; spesso serve ?sslmode=require).'
+      );
+    }
     process.exit(1);
   }
 }
