@@ -287,11 +287,19 @@ railway up
 
 ### Frontend → Vercel (o analoghi)
 
+**Da CLI** (consigliato: root = `frontend`):
+
 ```bash
 npm install -g vercel
 cd frontend
 vercel --prod
 ```
+
+**Da GitHub su Vercel:** nel progetto, apri **Settings → General → Root Directory** e imposta **`frontend`**. Build: `npm run build`, output: **`dist`**. Il file `frontend/vercel.json` aggiunge i **rewrite** necessari a React Router (altrimenti rotte come `/login` danno **404 NOT_FOUND** da Vercel).
+
+Se importi il repo intero **senza** impostare la root su `frontend`, in root c’è `vercel.json` che punta build/output su `frontend/` (commit e ridistribuisci).
+
+**Dopo il deploy:** in locale le API passano dal proxy Vite su `/api`; su Vercel il sito è solo statico: devi esporre il backend su un URL pubblico e (in un passo successivo) puntare il frontend a quell’URL (es. variabile `VITE_API_BASE_URL` + aggiornamento di `api/client.js`), oppure configurare **rewrites** Vercel verso l’host dell’API.
 
 Alternative al frontend statico: [Netlify](https://www.netlify.com/), [Cloudflare Pages](https://pages.cloudflare.com/), [GitHub Pages](https://pages.github.com/) (con build `npm run build` e cartella `dist/`).
 
