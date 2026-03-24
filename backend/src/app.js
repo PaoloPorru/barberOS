@@ -22,17 +22,38 @@ const profileRoutes = require('./routes/profile');
 
 const app = express();
 
+/** Render / Vercel: IP reale e rate limit corretti dietro proxy. */
+app.set('trust proxy', 1);
+
 /** Fino a quando migrate + DB non sono pronti, /api risponde 503 (evita richieste “pending” su Render). */
 global.__DB_READY__ = false;
 
+function corsAllowedOrigins() {
+  const raw = process.env.FRONTEND_URL || 'http://localhost:5173';
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Helmet di default imposta Cross-Origin-Resource-Policy: same-origin → il browser può bloccare
+// le risposte fetch/XHR da un altro dominio (es. sito Vercel → API Render).
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+app.use(
+  cors({
+    origin(origin, callback) {
+      const list = corsAllowedOrigins();
+      if (!origin) return callback(null, true);
+      if (list.includes(origin)) return callback(null, true);
+      callback(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // ─── GENERAL MIDDLEWARE ───────────────────────────────────────
 app.use(compression());

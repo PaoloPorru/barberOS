@@ -11,6 +11,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL?.trim() || '/api';
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  /** Render free: cold start lungo; senza timeout la richiesta resta “pending” a lungo. */
+  timeout: import.meta.env.PROD ? 120_000 : 30_000,
 });
 
 // Attach token to every request
@@ -46,7 +48,9 @@ api.interceptors.response.use(
       isRefreshing = true;
       try {
         const { refreshToken } = useAuthStore.getState();
-        const { data } = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken });
+        const { data } = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken }, {
+          timeout: import.meta.env.PROD ? 120_000 : 30_000,
+        });
         useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
         processQueue(null, data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
