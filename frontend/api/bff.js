@@ -1,7 +1,7 @@
 /**
  * Copia allineata a root `api/bff.js` — Vercel Root Directory = `frontend`.
  */
-const UPSTREAM_MS = Number(process.env.BFF_UPSTREAM_TIMEOUT_MS) || 120_000;
+const UPSTREAM_MS = Number(process.env.BFF_UPSTREAM_TIMEOUT_MS) || 8_000;
 
 function readRequestBody(req) {
   if (req.body === undefined || req.body === null) return undefined;
@@ -132,7 +132,7 @@ module.exports = async (req, res) => {
       return res.status(504).json({
         error: 'Timeout verso il backend',
         hint:
-          'Render free può impiegare 1–2 minuti al risveglio. Riprova. Verifica che API_ORIGIN sia l’URL onrender.com corretto.',
+          'Su Vercel free il proxy ha ~10s; Render in cold start è più lento. Imposta VITE_API_BASE_URL=https://TUO-API.onrender.com/api nel build Vercel (chiamata diretta) e FRONTEND_URL sul backend.',
       });
     }
     res.status(502).json({

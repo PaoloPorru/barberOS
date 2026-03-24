@@ -56,16 +56,16 @@ Se **non** usi il Blueprint del punto 0:
 
 ## 5. Frontend (Vercel)
 
-1. **Settings → Environment Variables** (ambiente **Production**):
-   - Nome esatto: **`API_ORIGIN`**
-   - Valore: URL Render **senza** slash finale (es. `https://barberos-api.onrender.com`).
-   - Il proxy è una **serverless Node** (`api/[[...slug]].js`): legge `API_ORIGIN` a runtime (anche se marcata Sensitive). Il vecchio **Edge Middleware** non vedeva le variabili Sensitive ed è stato rimosso.
-2. **Deployments → Redeploy** (dopo ogni modifica alle variabili).
-3. **Root Directory** su Vercel:
-   - **vuota** (repo root): usi `vercel.json` + `api/[[...slug]].js` alla root.
-   - oppure **`frontend`**: deve esistere anche `frontend/api/[[...slug]].js` (già nel repo).
+**Consigliato (evita 504 con Render free):** il proxy serverless ha limite **~10 secondi**; il cold start Render spesso è più lungo.
 
-**Alternativa senza proxy:** imposta **`VITE_API_BASE_URL`** = `https://tuo-api.onrender.com/api` (con `/api` finale), abilitala per il **build**, ridistribuisci. Il browser chiama direttamente Render; su Render `FRONTEND_URL` deve essere il dominio Vercel (CORS).
+1. **Settings → Environment Variables** — aggiungi per **Production** e **Preview** (devono essere disponibili al **build**):
+   - **`VITE_API_BASE_URL`** = `https://tuo-api.onrender.com/api` (URL pubblico Render **con** suffisso `/api`).
+2. **Deployments → Redeploy** (ogni volta che cambi variabili `VITE_*`).
+3. Su **Render** (backend), **`FRONTEND_URL`** = `https://tuo-progetto.vercel.app` (CORS).
+
+**Opzionale (solo se non usi `VITE_API_BASE_URL`):** **`API_ORIGIN`** = URL Render **senza** `/` finale — attiva il BFF `api/bff.js`; su piano Vercel free può andare in **504** durante il cold start.
+
+**Root Directory** Vercel: vuota (monorepo) oppure `frontend` (c’è `frontend/api/bff.js`).
 
 ## 6. Verifica
 

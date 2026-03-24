@@ -1,5 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL?.trim()) {
+  console.warn(
+    '[BarberOS] Su Vercel imposta VITE_API_BASE_URL=https://…onrender.com/api (Environment Variables, tutti gli ambienti di build). Senza, il proxy /api va spesso in 504 con Render free.'
+  );
+}
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import App from './App';

@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-/** Production: set in Vercel/hosting to your public API root, e.g. https://api.example.com/api */
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+/**
+ * Dev: proxy Vite → localhost:3000 su /api.
+ * Prod (Vercel + Render free): imposta VITE_API_BASE_URL = https://TUO-API.onrender.com/api
+ * altrimenti le chiamate passano dal BFF serverless e vanno in 504 (~10s) durante il cold start Render.
+ */
+const API_BASE = import.meta.env.VITE_API_BASE_URL?.trim() || '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
