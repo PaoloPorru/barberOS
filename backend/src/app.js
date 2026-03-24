@@ -1,6 +1,6 @@
 require('dotenv').config();
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -22,6 +22,9 @@ const profileRoutes = require('./routes/profile');
 
 const app = express();
 
+/** Fino a quando migrate + DB non sono pronti, /api risponde 503 (evita richieste “pending” su Render). */
+global.__DB_READY__ = false;
+
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
 app.use(helmet());
 app.use(cors({
@@ -36,6 +39,14 @@ app.use(compression());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
+
+app.use('/api', (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  if (!global.__DB_READY__) {
+    return res.status(503).json({ error: 'Servizio in avvio, riprova tra pochi secondi.' });
+  }
+  next();
+});
 
 // ─── RATE LIMITING ────────────────────────────────────────────
 app.use('/api/', rateLimiter.general);
@@ -52,7 +63,11 @@ app.use('/api/profile', profileRoutes);
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    databaseReady: !!global.__DB_READY__,
+  });
 });
 
 // ─── 404 ──────────────────────────────────────────────────────
@@ -79,21 +94,25 @@ app.use((err, req, res, next) => {
 // ─── START ────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
-/** Su Render (piano free) non c’è Shell / pre-deploy: migrazione idempotente all’avvio. */
-function runSchemaMigrateIfCloud() {
-  if (process.env.SKIP_AUTO_MIGRATE === '1') return;
-  if (!process.env.RENDER && process.env.AUTO_MIGRATE !== '1') return;
+/** Su Render (piano free) non c’è Shell / pre-deploy: migrazione idempotente all’avvio (async, non blocca listen). */
+function runSchemaMigrateIfCloudAsync() {
+  if (process.env.SKIP_AUTO_MIGRATE === '1') return Promise.resolve();
+  if (!process.env.RENDER && process.env.AUTO_MIGRATE !== '1') return Promise.resolve();
   const backendRoot = path.join(__dirname, '..');
   const script = path.join(backendRoot, 'scripts', 'apply-schema.js');
   logger.info('Applicazione schema SQL (auto, idempotente)…');
-  const r = spawnSync(process.execPath, [script], {
-    cwd: backendRoot,
-    env: process.env,
-    stdio: 'inherit',
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [script], {
+      cwd: backendRoot,
+      env: process.env,
+      stdio: 'inherit',
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`migrate terminata con codice ${code}`));
+    });
   });
-  if (r.status !== 0) {
-    throw new Error(`migrate terminata con codice ${r.status}`);
-  }
 }
 
 async function start() {
@@ -111,13 +130,14 @@ async function start() {
       );
       process.exit(1);
     }
-    runSchemaMigrateIfCloud();
-    await sequelize.authenticate();
-    logger.info('✅ Database connected');
-
     app.listen(PORT, () => {
       logger.info(`🚀 BarberOS API running on port ${PORT}`);
     });
+
+    await runSchemaMigrateIfCloudAsync();
+    await sequelize.authenticate();
+    logger.info('✅ Database connected');
+    global.__DB_READY__ = true;
   } catch (err) {
     logger.error('❌ Unable to start:', err);
     if (err.name === 'SequelizeConnectionRefusedError' || err.parent?.code === 'ECONNREFUSED') {
