@@ -9,8 +9,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "migrate": "node src/config/migrate.js",
-    "seed": "node src/config/seed.js",
+    "migrate": "node scripts/apply-schema.js",
+    "seed": "node scripts/apply-seed.js",
     "test": "jest --watchAll"
   },
   "dependencies": {

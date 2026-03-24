@@ -1,8 +1,12 @@
 const { Sequelize } = require('sequelize');
 const logger = require('./logger');
+const { sslForSequelize } = require('./postgresSsl');
+
+const ssl = sslForSequelize(process.env.DATABASE_URL);
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
+  ...(ssl ? { dialectOptions: { ssl } } : {}),
   logging: (sql) => process.env.NODE_ENV === 'development' && logger.debug(sql),
   pool: {
     max: 10,

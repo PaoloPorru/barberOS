@@ -271,6 +271,8 @@ Se non vuoi usare **Railway**, puoi ospitare l’API su altri servizi (verifica 
 
 Comune a tutti: imposta le **stesse variabili** del file `backend/.env` (in particolare `DATABASE_URL`, `REDIS_URL`, `JWT_*`, `FRONTEND_URL`, SMTP).
 
+**Checklist deploy gratuito (Neon + Upstash + Render + Vercel):** [DEPLOY-GRATIS.md](./DEPLOY-GRATIS.md). Blueprint Render in **`render.yaml`**. Migrazione DB: `cd backend && npm run migrate` (e opzionale `npm run seed`).
+
 #### Opzione Railway (se la usi)
 
 Dalla cartella del progetto collegata a Railway, con la [CLI attuale](https://docs.railway.com/cli/add):
