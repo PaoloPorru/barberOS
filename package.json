@@ -1,0 +1,12 @@
+{
+  "name": "barberos-monorepo",
+  "private": true,
+  "description": "Punta Render su questa root oppure imposta Root Directory = backend",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "npm install --prefix backend",
+    "start": "npm start --prefix backend"
+  }
+}
