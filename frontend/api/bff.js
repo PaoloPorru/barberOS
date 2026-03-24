@@ -1,4 +1,15 @@
-/** Copia di root `api/bff.js` — Vercel Root Directory = `frontend`. */
+/**
+ * Copia allineata a root `api/bff.js` — Vercel Root Directory = `frontend`.
+ */
+const UPSTREAM_MS = Number(process.env.BFF_UPSTREAM_TIMEOUT_MS) || 120_000;
+
+function readRequestBody(req) {
+  if (req.body === undefined || req.body === null) return undefined;
+  if (typeof req.body === 'string' || Buffer.isBuffer(req.body)) return req.body;
+  if (typeof req.body === 'object') return JSON.stringify(req.body);
+  return String(req.body);
+}
+
 module.exports = async (req, res) => {
   const origin = String(process.env.API_ORIGIN || process.env.BACKEND_URL || '')
     .trim()
@@ -8,7 +19,27 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       error: 'API_ORIGIN mancante',
       hint:
-        'Vercel → Environment Variables: API_ORIGIN. Oppure VITE_API_BASE_URL=https://…/api nel build.',
+        'Imposta l’URL del backend Render (es. https://xxx.onrender.com), NON il dominio Vercel. Oppure VITE_API_BASE_URL sul build.',
+    });
+  }
+
+  let originHost;
+  try {
+    originHost = new URL(origin).host.toLowerCase();
+  } catch {
+    return res.status(500).json({ error: 'API_ORIGIN non è un URL valido' });
+  }
+
+  const requestHost = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+
+  if (originHost && requestHost && originHost === requestHost) {
+    return res.status(500).json({
+      error: 'API_ORIGIN uguale al sito Vercel',
+      hint:
+        'Stai puntando al frontend invece che a Render. API_ORIGIN deve essere tipo https://TUO-SERVIZIO.onrender.com (senza / finale).',
     });
   }
 
@@ -44,7 +75,21 @@ module.exports = async (req, res) => {
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
     const lower = key.toLowerCase();
-    if (['host', 'connection', 'content-length'].includes(lower)) continue;
+    if (
+      [
+        'host',
+        'connection',
+        'content-length',
+        'transfer-encoding',
+        'keep-alive',
+        'x-forwarded-host',
+        'x-forwarded-proto',
+        'x-vercel-id',
+        'x-vercel-deployment-url',
+      ].includes(lower)
+    ) {
+      continue;
+    }
     if (value == null) continue;
     headers.set(key, Array.isArray(value) ? value.join(',') : String(value));
   }
@@ -56,16 +101,20 @@ module.exports = async (req, res) => {
   };
 
   if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    if (req.body !== undefined && req.body !== null) {
-      init.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const raw = readRequestBody(req);
+    if (raw !== undefined && raw !== null && String(raw).length) {
+      init.body = typeof raw === 'string' || Buffer.isBuffer(raw) ? raw : String(raw);
       if (!headers.has('content-type')) {
         headers.set('content-type', 'application/json');
       }
     }
   }
 
+  const ac = new AbortController();
+  const kill = setTimeout(() => ac.abort(), UPSTREAM_MS);
+
   try {
-    const r = await fetch(targetUrl, init);
+    const r = await fetch(targetUrl, { ...init, signal: ac.signal });
     const text = await r.text();
     res.status(r.status);
     const skip = new Set([
@@ -79,9 +128,18 @@ module.exports = async (req, res) => {
     });
     res.send(text);
   } catch (e) {
+    if (e.name === 'AbortError' || e.code === 'ABORT_ERR') {
+      return res.status(504).json({
+        error: 'Timeout verso il backend',
+        hint:
+          'Render free può impiegare 1–2 minuti al risveglio. Riprova. Verifica che API_ORIGIN sia l’URL onrender.com corretto.',
+      });
+    }
     res.status(502).json({
       error: 'Backend non raggiungibile',
       detail: String(e?.message || e),
     });
+  } finally {
+    clearTimeout(kill);
   }
 };
