@@ -15,13 +15,9 @@ Passi:
 2. Collega il repo **barberOS** e conferma (branch `main`).
 3. Render crea DB + API. **Non** impostare `DATABASE_URL` a mano (e cancella valori con `localhost` se restano da un deploy vecchio).
 4. Compila nel servizio web solo ciò che manca: **`FRONTEND_URL`**, eventuale **`REDIS_URL`** (Upstash), SMTP.
-5. Dopo il primo deploy ok, applica lo schema **una tantum** (Shell Render sul servizio web, nella root `backend`):
-
-   ```bash
-   npm run migrate
-   ```
-
-   (Oppure dal PC con la *Internal Database URL* copiata dalla scheda del database su Render.)
+5. **Schema tabelle:** su Render (piano free) non serve la Shell. All’avvio l’API esegue automaticamente `scripts/apply-schema.js` se è presente la variabile d’ambiente **`RENDER`** (impostata da Render). Lo script è **idempotente** (ripetibile).  
+   Per dati demo: dal PC, con `DATABASE_URL` del cloud: `npm run seed`.  
+   Disabilitare auto-migrazione: `SKIP_AUTO_MIGRATE=1` su Render.
 
 Se preferisci **Neon** invece del Postgres Render, non usare questo blueprint per il DB oppure sovrascrivi `DATABASE_URL` nel dashboard con la stringa Neon.
 

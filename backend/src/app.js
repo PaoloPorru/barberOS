@@ -1,4 +1,6 @@
 require('dotenv').config();
+const path = require('path');
+const { spawnSync } = require('child_process');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -77,6 +79,23 @@ app.use((err, req, res, next) => {
 // ─── START ────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
+/** Su Render (piano free) non c’è Shell / pre-deploy: migrazione idempotente all’avvio. */
+function runSchemaMigrateIfCloud() {
+  if (process.env.SKIP_AUTO_MIGRATE === '1') return;
+  if (!process.env.RENDER && process.env.AUTO_MIGRATE !== '1') return;
+  const backendRoot = path.join(__dirname, '..');
+  const script = path.join(backendRoot, 'scripts', 'apply-schema.js');
+  logger.info('Applicazione schema SQL (auto, idempotente)…');
+  const r = spawnSync(process.execPath, [script], {
+    cwd: backendRoot,
+    env: process.env,
+    stdio: 'inherit',
+  });
+  if (r.status !== 0) {
+    throw new Error(`migrate terminata con codice ${r.status}`);
+  }
+}
+
 async function start() {
   try {
     const dbUrl = process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim();
@@ -92,6 +111,7 @@ async function start() {
       );
       process.exit(1);
     }
+    runSchemaMigrateIfCloud();
     await sequelize.authenticate();
     logger.info('✅ Database connected');
 

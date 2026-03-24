@@ -16,6 +16,7 @@ services:
     region: frankfurt
     rootDir: backend
     buildCommand: npm run build
+    # Pre-Deploy non è incluso nel piano free Render: la migrazione parte all’avvio (vedi app.js).
     startCommand: npm start
     healthCheckPath: /health
     envVars:
