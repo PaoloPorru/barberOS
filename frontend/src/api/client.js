@@ -34,6 +34,10 @@ const processQueue = (error, token = null) => {
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
+    if (!err.response && import.meta.env.PROD) {
+      const msg = err.code === 'ECONNABORTED' ? 'Timeout' : err.message || 'Network';
+      console.error(`[BarberOS API] ${msg} verso ${API_BASE} — controlla URL, Render attivo, FRONTEND_URL su Render e CORS.`);
+    }
     const original = err.config;
     if (err.response?.status === 401 && err.response?.data?.code === 'TOKEN_EXPIRED' && !original._retry) {
       if (isRefreshing) {
