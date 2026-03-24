@@ -4,6 +4,7 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/bff?forward=$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

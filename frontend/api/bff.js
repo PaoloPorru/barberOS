@@ -1,9 +1,4 @@
-/**
- * Proxy /api/* → backend (Node su Vercel).
- * Nome file: [...path] (catch-all Vercel). NON usare [[...slug]] (è Next.js e qui spesso non viene eseguito → 405 sul POST /api).
- *
- * Vercel → API_ORIGIN = https://tuo-api.onrender.com (senza / finale)
- */
+/** Copia di root `api/bff.js` — Vercel Root Directory = `frontend`. */
 module.exports = async (req, res) => {
   const origin = String(process.env.API_ORIGIN || process.env.BACKEND_URL || '')
     .trim()
@@ -13,27 +8,35 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       error: 'API_ORIGIN mancante',
       hint:
-        'Vercel → Environment Variables: API_ORIGIN. Oppure VITE_API_BASE_URL=https://…/api nel build del frontend.',
+        'Vercel → Environment Variables: API_ORIGIN. Oppure VITE_API_BASE_URL=https://…/api nel build.',
     });
   }
 
+  const host = req.headers.host || 'localhost';
   let pathname;
   let search = '';
   try {
-    const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    pathname = u.pathname;
-    search = u.search;
-  } catch {
-    const [p, ...q] = String(req.url || '').split('?');
-    pathname = p;
-    search = q.length ? `?${q.join('?')}` : '';
-  }
+    const u = new URL(req.url, `http://${host}`);
+    const forwardRaw = u.searchParams.get('forward');
+    const forward = forwardRaw
+      ? String(forwardRaw)
+          .split('/')
+          .filter(Boolean)
+          .join('/')
+      : '';
 
-  if (!pathname.startsWith('/api')) {
-    const seg = req.query?.path ?? req.query?.slug;
-    const segments =
-      seg === undefined ? [] : Array.isArray(seg) ? seg : [seg];
-    pathname = segments.length ? `/api/${segments.join('/')}` : '/api';
+    u.searchParams.delete('forward');
+    const rest = u.searchParams.toString();
+    search = rest ? `?${rest}` : '';
+
+    if (u.pathname === '/api/bff' || u.pathname.startsWith('/api/bff')) {
+      pathname = forward ? `/api/${forward}` : '/api';
+    } else {
+      pathname = u.pathname;
+      search = u.search || '';
+    }
+  } catch {
+    return res.status(400).json({ error: 'URL non valido' });
   }
 
   const targetUrl = `${origin}${pathname}${search}`;
