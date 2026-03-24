@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
+/** Production: set in Vercel/hosting to your public API root, e.g. https://api.example.com/api */
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -39,7 +42,7 @@ api.interceptors.response.use(
       isRefreshing = true;
       try {
         const { refreshToken } = useAuthStore.getState();
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
+        const { data } = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken });
         useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
         processQueue(null, data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
