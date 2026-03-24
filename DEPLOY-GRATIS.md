@@ -39,10 +39,16 @@ npm run seed    # opzionale: utenti demo (README credenziali)
 
 ## 5. Frontend (Vercel)
 
-1. **Settings → Environment Variables**:
-   - `API_ORIGIN` = URL Render **senza** slash finale (es. `https://barberos-api.onrender.com`).
-2. **Redeploy** il progetto.
-3. Root del repo su Vercel: intero monorepo (dove ci sono `vercel.json` e `middleware.js`), oppure solo `frontend` se in quel caso hai anche `frontend/middleware.js`.
+1. **Settings → Environment Variables** (ambiente **Production**):
+   - Nome esatto: **`API_ORIGIN`**
+   - Valore: URL Render **senza** slash finale (es. `https://barberos-api.onrender.com`).
+   - Il proxy è una **serverless Node** (`api/[[...slug]].js`): legge `API_ORIGIN` a runtime (anche se marcata Sensitive). Il vecchio **Edge Middleware** non vedeva le variabili Sensitive ed è stato rimosso.
+2. **Deployments → Redeploy** (dopo ogni modifica alle variabili).
+3. **Root Directory** su Vercel:
+   - **vuota** (repo root): usi `vercel.json` + `api/[[...slug]].js` alla root.
+   - oppure **`frontend`**: deve esistere anche `frontend/api/[[...slug]].js` (già nel repo).
+
+**Alternativa senza proxy:** imposta **`VITE_API_BASE_URL`** = `https://tuo-api.onrender.com/api` (con `/api` finale), abilitala per il **build**, ridistribuisci. Il browser chiama direttamente Render; su Render `FRONTEND_URL` deve essere il dominio Vercel (CORS).
 
 ## 6. Verifica
 
