@@ -1,0 +1,27 @@
+# PostgreSQL + Redis per sviluppo locale (allineati a backend/.env.example)
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barberos-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: barberos
+    ports:
+      - '5432:5432'
+    volumes:
+      - barberos_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d barberos']
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: barberos-redis
+    ports:
+      - '6379:6379'
+
+volumes:
+  barberos_pg_data:
