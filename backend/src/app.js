@@ -79,9 +79,16 @@ const PORT = process.env.PORT || 3000;
 
 async function start() {
   try {
-    if (!process.env.DATABASE_URL || !String(process.env.DATABASE_URL).trim()) {
+    const dbUrl = process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim();
+    if (!dbUrl) {
       logger.error(
         'Manca DATABASE_URL. Su Render → Environment aggiungi la connection string PostgreSQL (Neon/Supabase/Render PG).'
+      );
+      process.exit(1);
+    }
+    if (process.env.NODE_ENV === 'production' && /localhost|127\.0\.0\.1/i.test(dbUrl)) {
+      logger.error(
+        'DATABASE_URL punta a localhost: copiata da .env locale? Su Render serve l’URL del Postgres su Neon/Supabase (host tipo ep-xxx.eu-central-1.aws.neon.tech), non localhost.'
       );
       process.exit(1);
     }

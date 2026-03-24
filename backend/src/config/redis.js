@@ -29,9 +29,16 @@ function createMemoryRedis() {
 }
 
 const url = process.env.REDIS_URL && String(process.env.REDIS_URL).trim();
+const isProd = process.env.NODE_ENV === 'production';
+const isLocalhostUrl = (u) => /localhost|127\.0\.0\.1/i.test(u);
 
 let redis;
-if (url) {
+if (url && isProd && isLocalhostUrl(url)) {
+  logger.warn(
+    'REDIS_URL è localhost: su Render non esiste Redis locale. Uso cache in-memory. Rimuovi REDIS_URL o incolla l’URL Upstash (rediss://…).'
+  );
+  redis = createMemoryRedis();
+} else if (url) {
   redis = new Redis(url, {
     retryStrategy: (times) => Math.min(times * 50, 2000),
     enableOfflineQueue: false,
